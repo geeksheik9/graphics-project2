@@ -16,18 +16,15 @@ var up = vec3(0,1,0);
 
 var rotating = false
 var theta = 0;
-//considering an on update to set prev to current and then keep moving it based on that
-var prevMouse = {
-	x: 0,
-	y: 0
-}
+//considering an on update to set prev to current and then keep moving it based on that+
 
-rotationMat = mat4(
-	vec4(1,0,0,0),
-	vec4(0,1,0,0),
-	vec4(0,0,1,0),
-	vec4(0,0,0,1)
-)
+var prevState = {
+	mouse: {
+		x: 0,
+		y: 0
+	},
+	quaternion: vec4(0,-1,0,0)
+}
 
 window.onload = function init() {
 
@@ -36,7 +33,6 @@ window.onload = function init() {
 
 	canvas.addEventListener("mousemove", rotateByMouse, false);
 	canvas.addEventListener("mousedown", mouseDown, false);
-	//canvas.addEventListener("mousedown", rotateByMouse, false)
 	canvas.addEventListener("mouseup", mouseUp, false);
 
 	// initialize webgl
@@ -65,7 +61,7 @@ window.onload = function init() {
 	colorLoc = gl.getUniformLocation(program, "vertColor");
 	mvmLoc = gl.getUniformLocation(program, 'mvm');
 	perspectiveLoc = gl.getUniformLocation(program, 'perspective');
-	rotationMatLoc = gl.getUniformLocation(program, 'rotationMat');
+	quaternionLoc = gl.getUniformLocation(program, 'q');
 
 	iBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
@@ -97,7 +93,6 @@ window.onload = function init() {
 function addColors(){
     for(let i = 0; i < teapot_vertices.length; i++){
         vertexColors.push([Math.random(), Math.random(), Math.random(), 1])
-        //vertexColors.push([0.75, 0.75, 0.75, 1])
     }
 }
 
@@ -147,6 +142,7 @@ function render() {
 	
 	gl.uniformMatrix4fv(mvmLoc, false, flatten(lookAt(eye, at, up)));
 	gl.uniformMatrix4fv(perspectiveLoc, false, flatten(createPerspective(-100, 100, -100, 100, 100, -100)));
+	gl.uniform4fv(quaternionLoc, prevState.quaternion)
     gl.drawElements(gl.TRIANGLES, teapot_indices.length, gl.UNSIGNED_SHORT, 0);
 
     setTimeout(
@@ -156,46 +152,42 @@ function render() {
 
 function mouseDown(event){
 	rotating = true;
-	prevMouse.x = event.pageX;
-	prevMouse.y = event.pageY;
+	prevState.mouse.x = event.pageX;
+	prevState.mouse.y = event.pageY;
 }
 
 function mouseUp(event){
 	rotating = false;
-	prevMouse.x = event.pageX;
-	prevMouse.y = event.pageY;
+	prevState.mouse.x = event.pageX;
+	prevState.mouse.y = event.pageY;
 }
 
 function rotateByMouse(event){
-	//prevMouse.x = event.pageX;
-	//prevMouse.y = event.pageY;
 	if(rotating){
-		prevNDC = deviceToNDC(prevMouse.x, prevMouse.y);
-		prevY = calcYUsingUnitSphere(prevNDC[0], prevNDC[1]);
-		prevPoint =  vec3(prevNDC[0], prevY, prevNDC[1]);
+		prevNDC = deviceToNDC(prevState.mouse.x, prevState.mouse.y);
+		prevZ = calcZUsingUnitSphere(prevNDC[0], prevNDC[1]);
+		prevPoint =  vec3(prevNDC[0], prevNDC[1], prevZ);
 
 		posX = event.pageX;
 		posY = event.pageY;
 		ndcVec = deviceToNDC(posX, posY);
-		y = calcYUsingUnitSphere(ndcVec[0], ndcVec[1]);
-		trackBallPoint = vec3(ndcVec[0], y, ndcVec[1]);
+		z = calcZUsingUnitSphere(ndcVec[0], ndcVec[1]);
+		trackBallPoint = vec3(ndcVec[0], ndcVec[1], z);
 
 		rotationAxis = cross(prevPoint, trackBallPoint);
 
 		theta += 2
 		w = Math.cos(Math.PI/theta) + Math.sin(Math.PI/theta);
 
-		quaterion = vec4(w, rotationAxis[0], rotationAxis[1], rotationAxis[2])
-
-		rotationMat = makeQuaterionMatrix(quaterion);
+		prevState.quaternion = vec4(rotationAxis[0], rotationAxis[1], rotationAxis[2], w)
 	}
-	gl.uniformMatrix4fv(rotationMatLoc, false, flatten(rotationMat))
 }
 
-function calcYUsingUnitSphere(x, y){
+function calcZUsingUnitSphere(x, y){
 	r = 1;
 
 	d = calcDistance(x,y)
+	console.log(d)
 	if(d > 1) {
 		x = x/d
 		y = y/d
@@ -215,24 +207,24 @@ function calcDistance(x,y){
 	return Math.sqrt((0-x)*(0-x) + (0-y)*(0-y))
 }
 
-function makeQuaterionMatrix(q){
+function makeQuaternionMatrix(q){
 	return mat4(
 		vec4(
-			2 * (q[0] * q[0] + q[1] * q[1]) - 1, 
-			2 * (q[1] * q[2] - q[0] * q[3]),
-			2 * (q[1] * q[3] + q[0] * q[2]),
+			2 * (q[3] * q[3] + q[0] * q[0]) - 1, 
+			2 * (q[0] * q[1] - q[3] * q[2]),
+			2 * (q[0] * q[2] + q[3] * q[1]),
 			0
 		),
 		vec4(
-			2 * (q[1] * q[2] + q[0] * q[3]),
-			2 * (q[0] * q[0] + q[2] * q[2]) - 1,
-			2 * (q[2] * q[3] - q[0] * q[1]),
+			2 * (q[0] * q[1] + q[3] * q[2]),
+			2 * (q[3] * q[3] + q[1] * q[1]) - 1,
+			2 * (q[1] * q[2] - q[3] * q[0]),
 			0
 		),
 		vec4(
-			2 * (q[1] * q[3] - q[0] * q[2]),
-			2 * (q[2] * q[3] + q[0] * q[1]),
-			2 * (q[0] * q[0] + q[3] * q[3]),
+			2 * (q[0] * q[2] - q[3] * q[1]),
+			2 * (q[1] * q[2] + q[3] * q[0]),
+			2 * (q[3] * q[3] + q[2] * q[2]) - 1,
 			0
 		),
 		vec4(
