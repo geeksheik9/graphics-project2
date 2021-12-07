@@ -1,0 +1,17 @@
+.slider{
+  -webkit-appearance: none;
+    width: 88%;
+    height: 5px;
+    border-radius: 5px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: opacity .15s ease-in-out;
+    transition: opacity .15s ease-in-out;
+    vertical-align: middle;
+}
+
+.slider-container {
+  height: 35px;
+  width: 512px;
+}

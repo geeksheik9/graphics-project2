@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<link rel="stylesheet" type="text/css" href="./style.css" />
+
+<title>Utah Teapot</title>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec3 vPosition;
+attribute vec4 vColor;
+
+uniform mat4 perspective;
+uniform mat4 mvm;
+uniform mat4 rotationMat;
+
+// varying type variable to share with fragment shader, as the color
+// will be sent to the fragment shader
+varying vec4 fColor;
+
+void main() {
+	fColor = vColor;
+	gl_Position = perspective * mvm * rotationMat * vec4(vPosition,1.0);
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+// vertex color coming from vertex shader
+varying vec4 fColor;
+
+void main() {
+    gl_FragColor = fColor;
+}
+
+</script>
+
+<script type="text/javascript" src="./include/webgl-utils.js"></script>
+<script type="text/javascript" src="./include/initShaders.js"></script>
+<script type="text/javascript" src="./include/MV.js"></script>
+<script type="text/javascript" src="./draw.js"></script>
+<script type="text/javascript" src="./teapot.js"></script>
+<script type="text/javascript" src="./helpers.js"></script>
+</head>
+
+<body>
+<div>
+	<canvas id="gl-canvas" width="512" height="512" >
+		Oops ... your browser doesn't support the HTML5 canvas element
+	</canvas>
+</div>
+</body>
+</html>
