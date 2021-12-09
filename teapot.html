@@ -6,13 +6,19 @@
 <title>Utah Teapot</title>
 
 <script id="vertex-shader" type="x-shader/x-vertex">
-attribute vec3 vPosition;
+attribute vec4 vPosition;
 attribute vec4 vColor;
 
+attribute vec3 vNormal;
+
 uniform mat4 perspective;
-uniform mat4 mvm;
+uniform mat4 view;
 
 uniform vec4 q;
+
+uniform vec4 ambientProd, diffuseProd, specularProd;
+uniform vec4 lightPosition;
+uniform float shininess;
 
 // varying type variable to share with fragment shader, as the color
 // will be sent to the fragment shader
@@ -20,6 +26,7 @@ varying vec4 fColor;
 
 void main() {
 
+	
 	mat4 rotationMat = mat4(
 		2.0*(q.w*q.w+q.x*q.x)-1.0,2.0*(q.x*q.y-q.w*q.z),2.0*(q.x*q.z+q.w*q.y),0.0,
 		2.0*(q.x*q.y+q.w*q.z),2.0*(q.w*q.w+q.y*q.y)-1.0,2.0*(q.y*q.z+q.w*q.x),0.0,
@@ -27,8 +34,31 @@ void main() {
 		0.0,0.0,0.0,1.0
 	);
 
-	fColor = vColor;
-	gl_Position = perspective * mvm * rotationMat * vec4(vPosition,1.0);
+	vec3 pos = -(rotationMat * vPosition).xyz;
+
+	vec3 light = lightPosition.xyz;
+	vec3 L = normalize(light - pos);
+
+	vec3 E = normalize(-pos);
+	vec3 H = normalize(L+E);
+
+	vec4 NN = vec4(vNormal,0.0);
+
+	vec3 N = normalize((rotationMat*NN).xyz);
+
+	float Kd = max(dot(L,N), 0.0);
+	vec4 diffuse = Kd*diffuseProd;
+
+	float Ks = pow(max(dot(N,H), 0.0), shininess);
+	vec4 specular = Ks * specularProd;
+	if(dot(L,N) < 0.0) {
+		specular = vec4(0.0,0.0,0.0,1.0);
+	}
+	
+	gl_Position = perspective * view * rotationMat * vPosition;
+
+	fColor = ambientProd + diffuse + specular;
+	fColor.a = 1.0;
 }
 </script>
 
@@ -49,8 +79,10 @@ void main() {
 <script type="text/javascript" src="./include/initShaders.js"></script>
 <script type="text/javascript" src="./include/MV.js"></script>
 <script type="text/javascript" src="./draw.js"></script>
-<script type="text/javascript" src="./teapot.js"></script>
 <script type="text/javascript" src="./helpers.js"></script>
+<script type="text/javascript" src="./createTeapotData.js"></script>
+<script type="text/javascript" src="./vertices.js"></script>
+<script type="text/javascript" src="patches.js"></script>
 </head>
 
 <body>
@@ -58,6 +90,22 @@ void main() {
 	<canvas id="gl-canvas" width="512" height="512" >
 		Oops ... your browser doesn't support the HTML5 canvas element
 	</canvas>
+</div>
+<div style="max-width: 512px;">
+	<div>
+		<b>Light Source Position</b>
+		<div class="slider-conatiner">
+			<div>
+				X:<input type="range" min="-100" max="100" value="50" class="slider" id="lightX">
+			</div>
+			<div>
+				Y:<input type="range" min="-100" max="100" value="50" class="slider" id="lightY">
+			</div>
+			<div>
+				Z:<input type="range" min="-100" max="100" value="50" class="slider" id="lightZ">
+			</div>
+		</div>
+	</div>
 </div>
 </body>
 </html>

@@ -70,3 +70,37 @@ function translate3d (tx, ty, tz) {
 		vec4(0, 0, 0, 1)
 	);
 }
+
+function ortho(left, right, bottom, top, near, far){
+	return mat4(
+		vec4(2/(right-left),0,0,(-(right+left)/(right-left))),
+		vec4(0,2/(top-bottom),0,(-(top+bottom)/(top-bottom))),
+		vec4(0,0,-2/(far-near),((far+near)/(far-near))),
+		vec4(0,0,0,1)
+	)
+}
+
+function createPerspective(left, right, bottom, top, near, far) {
+	frustumMatrix = mat4(vec4(1, 0, 0, (left+right)/2),
+                         vec4(0, 1, 0, (bottom + top)/2),
+                         vec4(0, 0, 1, 0),
+                         vec4(0, 0, 0, 1)
+                         );
+    perspectiveMatrix = mat4(vec4(near, 0, 0, 0),
+                             vec4(0, near, 0, 0),
+                             vec4(0, 0, 1, 0),
+                             vec4(0, 0, -1, 0)
+                             );
+    scaleMatrix = mat4(vec4(2/(right-left), 0, 0, 0),
+                       vec4(0, 2/(top-bottom), 0, 0),
+                       vec4(0, 0, 1, 0),
+                       vec4(0, 0, 0, 1)
+                       );
+    mappingDepth = mat4(vec4(1, 0, 0, 0),
+                        vec4(0, 1, 0, 0),
+                        vec4(0, 0, -(far + near)/(far-near), (2*far*near)/(near-far)),
+                        vec4(0, 0, -1, 0 )
+                        );
+
+    return mult(scaleMatrix, mult(perspectiveMatrix, mult(mappingDepth, frustumMatrix)));
+}
