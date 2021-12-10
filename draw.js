@@ -11,7 +11,7 @@ var program;
 var vertexColors = [];
 
 var eye = vec3(0,0,1);
-var at = vec3(0,0,0);
+var at = vec3(0,0,-1);
 var up = vec3(0,1,0);
 
 var rotating = false
@@ -27,16 +27,16 @@ var prevState = {
 }
 
 var light = {
-	Position: vec4(1.0,1.0,-1.0,0.0),
-	Ambient: vec4(0.8,0.8,0.8,1.0),
-	Diffuse: vec4(1.0,1.0,1.0,1.0),
+	Position: vec4(1.0,1.0,1.0,0.0),
+	Ambient: vec4(0.5,0.5,0.5,1.0),
+	Diffuse: vec4(1.0,0.5,0.0,1.0),
 	Specular: vec4(0.0,0.0,0.0,1.0)
 }
 
 var material = {
 	Ambient: vec4(1.0,1.0,1.0,1.0),
-	Diffuse: vec4(1.0,1.0,1.0,1.0),
-	Specular: vec4(1.0,1.0,1.0,1.0),
+	Diffuse: vec4(1.0,0.0,0.0,1.0),
+	Specular: vec4(0.5,1.0,1.0,1.0),
 	Shininess: 100.0
 }
 
@@ -74,7 +74,6 @@ window.onload = function init() {
 	// Get a handle to theta  - this is a uniform variable defined 
 	// by the user in the vertex shader, the second parameter should match
 	// exactly the name of the shader variable
-	colorLoc = gl.getUniformLocation(program, "vertColor");
 	viewLoc = gl.getUniformLocation(program, 'view');
 	perspectiveLoc = gl.getUniformLocation(program, 'perspective');
 	quaternionLoc = gl.getUniformLocation(program, 'q');
@@ -88,9 +87,6 @@ window.onload = function init() {
 	gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
 	gl.enableVertexAttribArray(vPosition);
 
-   	//addColors();
-
-	console.log(geometry[1]);
 	normalBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, flatten(geometry[1]), gl.STATIC_DRAW);
@@ -98,12 +94,14 @@ window.onload = function init() {
 	gl.vertexAttribPointer(normalLoc, 3, gl.Float, false, 0,0);
 	gl.enableVertexAttribArray(normalLoc);
 
-	/*colorBuffer = gl.createBuffer();
+	addColor();
+
+	colorBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, flatten(vertexColors), gl.STATIC_DRAW)
 	var vColor = gl.getAttribLocation(program, "vColor");
 	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0 , 0);
-	gl.enableVertexAttribArray(vColor)*/
+	gl.enableVertexAttribArray(vColor)
 
 
 	gl.clearDepth(1.0);
@@ -112,12 +110,6 @@ window.onload = function init() {
 
     render();
 };
-
-function addColors(){
-    for(let i = 0; i < geometry[0].length; i++){
-        vertexColors.push([Math.random(), 0.5, 0.5, 1])
-    }
-}
 
 function lookAt(eye, at, up){
 	n = normalize(subtract(at , eye));
@@ -133,6 +125,12 @@ function lookAt(eye, at, up){
     return mult(cam, translate3d(-eye[0], -eye[1], -eye[2]));
 }
 
+function addColor(){
+	for(let i = 0; i < geometry[0].length; i++){
+		vertexColors.push([Math.random(), 0.5, 0.5, 1.0]);
+	}
+}
+
 function render() {
 	// this is render loop
 	// clear the display with the background color
@@ -144,11 +142,11 @@ function render() {
 	gl.uniform4fv(quaternionLoc, prevState.quaternion)
     //gl.drawElements(gl.TRIANGLES, teapot_indices.length, gl.UNSIGNED_SHORT, 0);
 	//gl.bufferData(gl.ARRAY_BUFFER, flatten(geometry[0]), gl.STATIC_DRAW);
-	lightX = document.getElementById("lightX").value/100;
-	lightY = document.getElementById("lightY").value/100;
-	lightZ = document.getElementById("lightZ").value/100;
+	// lightX = document.getElementById("lightX").value/100;
+	// lightY = document.getElementById("lightY").value/100;
+	// lightZ = document.getElementById("lightZ").value/100;
 
-	light.Position = vec4(lightX, lightY, lightZ, 1.0);
+	// light.Position = vec4(lightX, lightY, lightZ, 1.0);
 	
 	var ambientProd = mult(light.Ambient, material.Ambient);
 	var diffuseProd = mult(light.Diffuse, material.Diffuse);

@@ -7,26 +7,25 @@
 
 <script id="vertex-shader" type="x-shader/x-vertex">
 attribute vec4 vPosition;
+attribute vec4 vNormal;
 attribute vec4 vColor;
-
-attribute vec3 vNormal;
 
 uniform mat4 perspective;
 uniform mat4 view;
 
 uniform vec4 q;
-
 uniform vec4 ambientProd, diffuseProd, specularProd;
 uniform vec4 lightPosition;
+
 uniform float shininess;
 
 // varying type variable to share with fragment shader, as the color
 // will be sent to the fragment shader
 varying vec4 fColor;
 
-void main() {
+varying vec3 L, N, E;
 
-	
+void main() {
 	mat4 rotationMat = mat4(
 		2.0*(q.w*q.w+q.x*q.x)-1.0,2.0*(q.x*q.y-q.w*q.z),2.0*(q.x*q.z+q.w*q.y),0.0,
 		2.0*(q.x*q.y+q.w*q.z),2.0*(q.w*q.w+q.y*q.y)-1.0,2.0*(q.y*q.z+q.w*q.x),0.0,
@@ -34,42 +33,43 @@ void main() {
 		0.0,0.0,0.0,1.0
 	);
 
-	vec3 pos = -(rotationMat * vPosition).xyz;
+	vec3 pos = (perspective * view * rotationMat * vPosition).xyz;
+	vec3 lightPos = (perspective * view * lightPosition).xyz;
 
-	vec3 light = lightPosition.xyz;
-	vec3 L = normalize(light - pos);
-
-	vec3 E = normalize(-pos);
-	vec3 H = normalize(L+E);
-
-	vec4 NN = vec4(vNormal,0.0);
-
-	vec3 N = normalize((rotationMat*NN).xyz);
-
-	float Kd = max(dot(L,N), 0.0);
-	vec4 diffuse = Kd*diffuseProd;
-
-	float Ks = pow(max(dot(N,H), 0.0), shininess);
-	vec4 specular = Ks * specularProd;
-	if(dot(L,N) < 0.0) {
-		specular = vec4(0.0,0.0,0.0,1.0);
-	}
+	vec3 L = normalize(lightPos - pos);
+	vec3 N = normalize((perspective * view * rotationMat * vNormal).xyz);
+	vec3 E = -normalize(pos);
 	
+	fColor = vColor;
 	gl_Position = perspective * view * rotationMat * vPosition;
-
-	fColor = ambientProd + diffuse + specular;
-	fColor.a = 1.0;
 }
 </script>
 
 <script id="fragment-shader" type="x-shader/x-fragment">
-
 precision mediump float;
 
 // vertex color coming from vertex shader
 varying vec4 fColor;
+varying vec3 L, N, E;
+
+uniform vec4 ambientProd;
+uniform vec4 diffuseProd;
+uniform vec4 specularProd;
+
+uniform float shininess;
 
 void main() {
+
+	vec4 diffuse = max(dot(L,N), 0.0) * diffuseProd;
+	vec3 H = normalize(L+E);
+	vec4 specular = pow(max(dot(N,H), 0.0), shininess) * specularProd;
+	if(dot(L,N) < 0.0) {
+		specular = vec4(0.0, 0.0, 0.0, 1.0);
+	}
+
+	vec4 fColor = fColor +ambientProd + diffuse + specular;
+	fColor.a = 1.0;
+
     gl_FragColor = fColor;
 }
 
